@@ -26,13 +26,14 @@ app.post('/api/users', async (req, res) => {
     const result = await usersCollection.insertOne({
         name: name,
         email: email,
-        age: age,
+        age: parseInt(age),
         createdAt: new Date()
     })
     return res.json(result)
 })
 
 app.get('/api/users', async (req, res) => {
+    // Give me all you have in Users collection
     const users = await usersCollection.find({}).toArray();
     return res.json(users)
 })

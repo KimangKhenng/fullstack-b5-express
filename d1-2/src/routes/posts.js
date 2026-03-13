@@ -1,6 +1,11 @@
 import express from 'express';
 const postRouter = express.Router();
 
+postRouter.use((req, res, next) => {
+    console.log("Hello World from Post")
+    next();
+});
+
 postRouter.get('/', (req, res) => {
     res.json({ message: 'Get all posts' });
 });

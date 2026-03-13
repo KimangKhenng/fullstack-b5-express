@@ -20,7 +20,6 @@ export const createUser = asyncHandler(async (req, res) => {
     const user = new UserModel({
         firstName,
         lastName,
-        username,
         dateOfBirth,
         age
     })
