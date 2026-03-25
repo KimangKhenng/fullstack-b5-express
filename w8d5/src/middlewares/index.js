@@ -61,6 +61,10 @@ export const createUserValidator = [
                 throw new Error('Email already exists');
             }
         }),
+    body('profile')
+        .trim()
+        .isMongoId()
+        .withMessage("File must be mongoID"),
     validateResult
 ]
 

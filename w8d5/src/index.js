@@ -1,12 +1,12 @@
+import 'dotenv/config'
+
 import express from 'express';
 import router from './routes/index.js';
 const app = express();
-import 'dotenv/config'
 import connectDB from './config/database.js';
-import multer from 'multer'
-import path from 'path';
-import cloudinary from 'cloudinary'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+// import multer from 'multer'
+
+// import cloudinary from 'cloudinary'
 // import multerS3 from 'multer-s3';
 
 
@@ -17,165 +17,107 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 // });
 
 // Configure AWS
-const s3 = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    }
-})
 
-const uploadS3 = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only images allowed'));
-        }
-    }
-});
 
-const storageBuffer = new multer.memoryStorage();
 
-const storage = multer.diskStorage({
-    // Destination folder
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        // Generate unique filename: timestamp-randomstring.extension
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-})
+// const storage = multer.diskStorage({
+//     // Destination folder
+//     destination: (req, file, cb) => {
+//         cb(null, 'uploads/');
+//     },
+//     filename: (req, file, cb) => {
+//         // Generate unique filename: timestamp-randomstring.extension
+//         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//         cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+//     }
+// })
 
-const fileFilter = (req, file, cb) => {
-    // Allowed extensions
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
 
-    // Check extension
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
 
-    // Check mime type
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
-        return cb(null, true);
-    } else {
-        cb(new Error('Only image files (jpeg, jpg, png, gif, webp) are allowed!'));
-    }
-};
-
-const uploads = multer({
-    storage: storageBuffer,
-    limits: {
-        fileSize: 5 * 1024 * 1024  // 5MB limit,
-    },
-    fileFilter: fileFilter
-})
 
 connectDB()
 
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.API_KEY,
-    api_secret: process.env.API_SECRET,
-});
-async function handleUpload(file) {
-    const res = await cloudinary.uploader.upload(file, {
-        resource_type: "auto",
-    });
-    return res;
-}
+// cloudinary.config({
+//     cloud_name: process.env.CLOUD_NAME,
+//     api_key: process.env.API_KEY,
+//     api_secret: process.env.API_SECRET,
+// });
+// async function handleUpload(file) {
+//     const res = await cloudinary.uploader.upload(file, {
+//         resource_type: "auto",
+//     });
+//     return res;
+// }
 
 app.use(express.json());
 
-app.post('/upload-signle', uploads.single('file'), (req, res) => {
-    console.log(req.file);  // File information
-    console.log(req.body);  // Other form fields
+// app.post('/upload-signle', uploads.single('file'), (req, res) => {
+//     console.log(req.file);  // File information
+//     console.log(req.body);  // Other form fields
 
-    res.json({
-        message: 'File uploaded successfully',
-        file: req.file
-    });
-})
+//     res.json({
+//         message: 'File uploaded successfully',
+//         file: req.file
+//     });
+// })
 
-app.post('/upload-multiple', uploads.array('file', 5), (req, res) => {
-    console.log(req.files);  // Array of files
+// app.post('/upload-multiple', uploads.array('file', 5), (req, res) => {
+//     console.log(req.files);  // Array of files
 
-    res.json({
-        message: `${req.files.length} files uploaded successfully`,
-        files: req.files.map(f => ({
-            filename: f.filename,
-            size: f.size,
-            mimetype: f.mimetype
-        }))
-    });
-})
+//     res.json({
+//         message: `${req.files.length} files uploaded successfully`,
+//         files: req.files.map(f => ({
+//             filename: f.filename,
+//             size: f.size,
+//             mimetype: f.mimetype
+//         }))
+//     });
+// })
 
-app.post('/upload-fields', uploads.fields([
-    { name: 'file', maxCount: 4 },
-    { name: 'photos', maxCount: 4 }
-]), (req, res) => {
-    console.log(req.files.file[0]);  // Avatar file
-    console.log(req.files.photos[0]);   // Cover file
+// app.post('/upload-fields', uploads.fields([
+//     { name: 'file', maxCount: 4 },
+//     { name: 'photos', maxCount: 4 }
+// ]), (req, res) => {
+//     console.log(req.files.file[0]);  // Avatar file
+//     console.log(req.files.photos[0]);   // Cover file
 
-    res.json({
-        message: 'Files uploaded',
-        file: req.files.file[0].filename,
-        photos: req.files.photos[0].filename
-    });
-})
+//     res.json({
+//         message: 'Files uploaded',
+//         file: req.files.file[0].filename,
+//         photos: req.files.photos[0].filename
+//     });
+// })
 
-app.post('/cloud-upload', uploads.single("my_file"), async (req, res) => {
-    try {
-        const b64 = Buffer.from(req.file.buffer).toString("base64");
-        let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
-        const cldRes = await handleUpload(dataURI);
-        res.json(cldRes);
-    } catch (error) {
-        console.log(error);
-        res.send({
-            message: error.message,
-        });
-    }
-})
+// app.post('/cloud-upload', uploads.single("my_file"), async (req, res) => {
+//     try {
+//         const b64 = Buffer.from(req.file.buffer).toString("base64");
+//         let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+//         const cldRes = await handleUpload(dataURI);
+//         res.json(cldRes);
+//     } catch (error) {
+//         console.log(error);
+//         res.send({
+//             message: error.message,
+//         });
+//     }
+// })
 
-app.use('/uploads', express.static('uploads', {
-    maxAge: '1d',           // Cache for 1 day
-    index: false,           // Don't serve index.html
-    dotfiles: 'ignore',     // Ignore dotfiles
-    etag: true              // Enable ETag
-}));
+// app.use('/uploads', express.static('uploads', {
+//     maxAge: '1d',           // Cache for 1 day
+//     index: false,           // Don't serve index.html
+//     dotfiles: 'ignore',     // Ignore dotfiles
+//     etag: true              // Enable ETag
+// }));
 
 // Use in route
-app.post('/upload-s3', uploadS3.single('image'), async (req, res) => {
-    try {
-        const file = req.file
-        if (!file) {
-            return res.status(400).json({ error: "No file uploaded!" })
-        }
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const params = {
-            Bucket: process.env.AWS_S3_BUCKET,
-            Key: `uploads/${file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname)}`,
-            Body: file.buffer,
-            ContentType: file.mimetype
-        }
-        const command = new PutObjectCommand(params)
-        await s3.send(command)
-        return res.json({
-            message: "Upload successful",
-            key: params.key,
-            url: `https://${params.Bucket}.s3.amazonaws.com/${params.Key}`
-        })
-    } catch (err) {
-        console.error(err)
-        return res.status(500).json({ error: "Upload filed" })
-    }
-});
+// app.post('/upload-s3', uploadS3.single('image'), async (req, res) => {
+//     try {
+
+//     } catch (err) {
+//         console.error(err)
+//         return res.status(500).json({ error: "Upload filed" })
+//     }
+// });
 
 app.use('/api', router)
 

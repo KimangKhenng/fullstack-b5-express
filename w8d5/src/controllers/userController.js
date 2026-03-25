@@ -57,7 +57,7 @@ export const getUserById = asyncHandler(async (req, res) => {
 
 export const createUser = asyncHandler(async (req, res) => {
     const {
-        firstName, lastName, dateOfBirth, username, age, email
+        firstName, lastName, dateOfBirth, username, age, email, profile
     } = req.body
     const user = new UserModel({
         firstName,
@@ -65,7 +65,8 @@ export const createUser = asyncHandler(async (req, res) => {
         dateOfBirth,
         username,
         age,
-        email
+        email,
+        profile
     })
     await user.save()
     res.status(201).json({

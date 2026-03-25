@@ -20,6 +20,11 @@ const userSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
+    profile: {
+        type: mongoose.Types.ObjectId,
+        required: true,
+        ref: 'File'
+    },
     age: {
         type: Number,
         validate: {
