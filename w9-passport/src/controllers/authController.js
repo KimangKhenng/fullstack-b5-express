@@ -3,7 +3,17 @@ import UserModel from '../models/userModel.js'
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
 
-const generateToken = (userId, secret, expire) => {
+const generateToken = (userId, payload, secret, expire) => {
+    console.log("Role")
+    console.log({ sub: userId, ...payload })
+    return jwt.sign({ sub: userId, ...payload }, secret, {
+        issuer: 'TFDServer',
+        expiresIn: expire
+    })
+}
+
+const generateRefreshToken = (userId, secret, expire) => {
+
     return jwt.sign({ sub: userId }, secret, {
         issuer: 'TFDServer',
         expiresIn: expire
@@ -14,9 +24,9 @@ export const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body
 
     // Find user in system
-    const user = await UserModel.findOne({ email: email }).select('email username password')
+    const user = await UserModel.findOne({ email: email }).select('email username password role')
 
-    console.log(user)
+    // console.log(user)
 
     if (!user) {
         return res.status(400).json({
@@ -35,8 +45,14 @@ export const login = asyncHandler(async (req, res) => {
         })
     }
     // match! Let's sign JWT Token and send back to user
-    const token = generateToken(user._id, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN)
-    const refreshToken = generateToken(user._id, process.env.JWT_REFRESH_SECRET, process.env.JWT_REFRESH_EXPIRE_IN)
+    const token = generateToken(
+        user._id, {
+        role: user.role,
+        email: user.email,
+        username: user.username
+    }
+        , process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN)
+    const refreshToken = generateRefreshToken(user._id, process.env.JWT_REFRESH_SECRET, process.env.JWT_REFRESH_EXPIRE_IN)
     // const token = jwt.sign(
     //     {
     //         sub: user._id,
@@ -84,7 +100,7 @@ export const refresh = asyncHandler(async (req, res) => {
         throw Error('Invalid refresh token!')
     }
 
-    const accessToken = generateToken(user._id, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN)
+    const accessToken = generateRefreshToken(user._id, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN)
     res.json({ success: true, accessToken })
 })
 
@@ -102,4 +118,59 @@ export const logout = asyncHandler(async (req, res) => {
 
     res.clearCookie('refreshToken')
     res.json({ success: false, message: 'Logout successfully' })
+})
+
+export const googleCallBack = asyncHandler(async (req, res) => {
+    const user = req.user;
+    const accessToken = generateToken(user._id, {
+        role: user.role,
+        email: user.email,
+        username: user.username
+    }, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN);
+    const refreshToken = generateRefreshToken(user._id, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN);
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Redirect to frontend with access token in query string
+    // Frontend stores it in memory, never in localStorage
+    // res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${accessToken}`);
+
+    const { password: pwd, ...userWithoutPassword } = user.toObject();
+
+    return res.json({ accessToken, user: userWithoutPassword })
+})
+
+export const githubCallBack = asyncHandler(async (req, res) => {
+
+    const user = req.user;
+    const accessToken = generateToken(user._id, {
+        role: user.role,
+        email: user.email,
+        username: user.username
+    }, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN);
+    const refreshToken = generateRefreshToken(user._id, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN);
+
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${accessToken}`);
+
+    const { password: pwd, ...userWithoutPassword } = user.toObject();
+
+    return res.json({ accessToken, user: userWithoutPassword })
 })

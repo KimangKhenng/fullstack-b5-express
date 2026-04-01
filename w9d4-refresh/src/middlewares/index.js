@@ -114,7 +114,7 @@ export const getPostValidation = [
 export const verifyJWT = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-        return res.status(400).json({
+        return res.status(401).json({
             success: false,
             message: "Invalid JWT"
         })
@@ -123,7 +123,7 @@ export const verifyJWT = (req, res, next) => {
     // Verify Token
     const payload = jwt.verify(token, process.env.JWT_SECRET)
     if (!payload) {
-        return res.status(400).json({
+        return res.status(401).json({
             success: false,
             message: "Invalid JWT"
         })
