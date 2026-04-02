@@ -140,12 +140,9 @@ export const googleCallBack = asyncHandler(async (req, res) => {
     });
 
     // Redirect to frontend with access token in query string
-    // Frontend stores it in memory, never in localStorage
-    // res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${accessToken}`);
-
-    const { password: pwd, ...userWithoutPassword } = user.toObject();
-
-    return res.json({ accessToken, user: userWithoutPassword })
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5500';
+    console.log(`${frontendUrl}?token=${accessToken}`);
+    res.redirect(`${frontendUrl}/login?token=${accessToken}`);
 })
 
 export const githubCallBack = asyncHandler(async (req, res) => {
@@ -168,9 +165,7 @@ export const githubCallBack = asyncHandler(async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // res.redirect(`${process.env.FRONTEND_URL}/oauth/callback?token=${accessToken}`);
-
-    const { password: pwd, ...userWithoutPassword } = user.toObject();
-
-    return res.json({ accessToken, user: userWithoutPassword })
+    // Redirect to frontend with access token in query string
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5500';
+    res.redirect(`${frontendUrl}/index.html?token=${accessToken}`);
 })

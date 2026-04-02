@@ -17,4 +17,11 @@ authRouter.get('/github', passport.authenticate('github', { session: false }));
 
 authRouter.get('/github/callback', passport.authenticate('github', { session: false, failureRedirect: '/login' }), githubCallBack)
 
+authRouter.get('/me', passport.authenticate('jwt', { session: false }), (req, res) => {
+    return res.json({
+        success: true,
+        user: req.user
+    })
+})
+
 export default authRouter;
