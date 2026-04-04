@@ -89,6 +89,7 @@ export const login = asyncHandler(async (req, res) => {
 
 export const refresh = asyncHandler(async (req, res) => {
     const token = req.cookies?.refreshToken
+    console.log("Refresh token: ", token)
     if (!token) {
         throw Error('No refresh token!')
     }
@@ -127,7 +128,7 @@ export const googleCallBack = asyncHandler(async (req, res) => {
         email: user.email,
         username: user.username
     }, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN);
-    const refreshToken = generateRefreshToken(user._id, process.env.JWT_SECRET, process.env.JWT_EXPIRE_IN);
+    const refreshToken = generateRefreshToken(user._id, process.env.JWT_REFRESH_SECRET, process.env.JWT_REFRESH_EXPIRE_IN);
 
     user.refreshToken = refreshToken;
     await user.save();
@@ -141,7 +142,7 @@ export const googleCallBack = asyncHandler(async (req, res) => {
 
     // Redirect to frontend with access token in query string
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5500';
-    console.log(`${frontendUrl}?token=${accessToken}`);
+    // console.log(`${frontendUrl}?token=${accessToken}`);
     res.redirect(`${frontendUrl}/login?token=${accessToken}`);
 })
 
