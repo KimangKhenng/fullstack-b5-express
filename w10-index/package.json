@@ -7,6 +7,7 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "fixture": "node src/utils/fixtures.js",
+    "benchmark": "node src/utils/benchmark.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
