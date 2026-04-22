@@ -1,0 +1,291 @@
+openapi: 3.0.0
+info:
+  title: FullStack TFD API Docs
+  version: 1.0.0
+  description: API documentation for the FullStack TFD project, covering all
+    endpoints and data models.
+servers:
+  - url: http://localhost:3000
+    description: Development
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Post:
+      # the name you'll use in $ref
+      type: object # the top-level type
+      properties:
+        _id:
+          type: string
+          example: "64abc123def456" # shown as a sample value in the UI
+        title:
+          type: string
+          example: "My first blog post"
+        text:
+          type: string
+          example: "Hello world content here..."
+        author:
+          type: string
+          description: User ID of the author # shown as a tooltip
+          example: "64abc000aaa111"
+        createdAt:
+          type: string
+          format: date-time # renders as an ISO timestamp hint
+          example: "2025-01-20T10:30:00.000Z"
+    PostDTO:
+      type: object
+      required:
+        - title
+        - text
+      properties:
+        title:
+          type: string
+          example: "My first blog post"
+        text:
+          type: string
+          example: "Hello world content here..."
+        author:
+          type: string
+          description: User ID of the author
+          example: "64abc000aaa111"
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Resource not found"
+    UnauthorizedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Invalid JWT"
+# swagger.yaml
+paths:
+  /api/posts:
+
+    # the URL path (no /api prefix — that's already in servers[])
+    post:
+      security:
+        - BearerAuth: [] # applies the BearerAuth scheme defined in components.securitySchemes
+      tags:
+        - Posts
+      summary: Create a new post # one-line label on the collapsed card
+      description: Creates a new blog post with the provided title and text. # expanded detail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostDTO" # reference to the PostDTO schema defined above
+      responses:
+        201:
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post" # return the created post object
+        400:
+          description: Bad request (e.g., missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        500:
+          description: Internal server error
+    get:
+      security:
+        - BearerAuth: [] # applies the BearerAuth scheme defined in components.securitySchemes
+      parameters:
+        - in: query # where the param lives: query / path / header / cookie
+          name: page # the key name in the URL (?page=...)
+          description: Page number
+          schema:
+            # describes the value's type and constraints
+            type: integer
+            minimum: 1 # validation hint shown in the UI
+            default: 1 # pre-filled value in "Try It Out"
+        - in: query
+          name: limit
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      # HTTP method, indented 2 spaces under the path
+      tags:
+        - Posts
+      summary: Get all posts # one-line label on the collapsed card
+      description: Returns all published posts. # expanded detail
+      responses:
+        200:
+          description: A list of posts # plain text is enough for now
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Post" # reference to the Post schema defined above
+                  meta:
+                    type: object
+                    properties:
+                      currentPage:
+                        type: integer
+                        example: 1
+                      totalPages:
+                        type: integer
+                        example: 5
+                      totalItems:
+                        type: integer
+                        example: 50
+                      itemsPerPage:
+                        type: integer
+                        example: 10
+                      hasNextPage:
+                        type: boolean
+                        example: true
+                      hasPrevPage:
+                        type: boolean
+                        example: false
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        500:
+          description: Internal server error
+    delete:
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: id
+          required: true
+          description: Post ID to delete
+          schema:
+            type: string
+            example: "64abc123def456"
+      tags:
+        - Posts
+      summary: Delete a post by ID
+      description: Deletes the post matching the provided ID.
+      responses:
+        204:
+          description: Post deleted successfully (no content)
+        400:
+          description: Bad request (e.g., missing or invalid ID)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        404:
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        500:
+          description: Internal server error
+  /api/posts/{id}:
+    get:
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Post ID
+          schema:
+            type: string
+            example: "64abc123def456"
+      tags:
+        - Posts
+      summary: Get a single post by ID
+      description: Returns a single post matching the provided ID.
+      responses:
+        200:
+          description: A single post object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        404:
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        500:
+          description: Internal server error
+  /api/files/upload-s3:
+    post:
+      security:
+        - BearerAuth: []
+      tags:
+        - Files
+      summary: Get a pre-signed S3 upload URL
+      description: Returns a pre-signed URL for uploading a file directly to S3.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The name of the file to be uploaded
+      responses:
+        200:
+          description: Pre-signed URL generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl:
+                    type: string
+                    example: "https://s3.amazonaws.com/your-bucket/myphoto.jpg?AWSAccessKeyId=..."
+        401:
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        500:
+          description: Internal server error
